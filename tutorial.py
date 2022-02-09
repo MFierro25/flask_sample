@@ -37,6 +37,19 @@ def login():
         session.permanent = True
         user = request.form["nm"]
         session["user"] = user
+        
+        # find all users in table with that name, first entry
+        found_user = users.query.filter_by(name=user).first()
+        if found_user:
+            session["email"] = found_user.email
+            
+        # create user and add to db    
+        else:
+            usr = users(user, "")
+            db.session.add(usr)
+            # dont forget to commit changes to save
+            db.session.commit()
+            
         flash("You succesfully logged in!")
         return redirect(url_for("user"))
     else:
@@ -54,6 +67,11 @@ def user():
         if request.method == "POST":
             email = request.form["email"]
             session["email"] = email
+            found_user = users.query.filter_by(name=user).first()
+            # change and save users email
+            found_user.email = email
+            db.session.commit()
+            
             flash("Email was saved")
         else:
             if "email" in session:
@@ -71,7 +89,12 @@ def logout():
         session.pop("email", None)
     # flashes a message
     flash(f"You have been logged out, {user}", "info")
-    return redirect(url_for("login"))   
+    return redirect(url_for("login"))
+
+@app.route("/view")
+def view():
+    # return all users in database
+    return render_template("view.html", values=users.query.all())   
 
 if __name__ == "__main__":
     # created database
